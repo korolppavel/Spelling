@@ -50,7 +50,9 @@ button{font-family:inherit}
 .progress i{display:block;height:100%;background:var(--ok);transition:width .3s}
 .top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .x{background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted)}
-.pic{font-size:64px;text-align:center;line-height:1.15;margin:2px 0 6px}
+.pic{font-size:64px;text-align:center;line-height:1.15;margin:2px 0 6px;min-height:76px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none}
+.pic img{width:130px;height:130px;object-fit:contain;border-radius:16px;background:#fff}
+.credit{font-size:11px;color:var(--muted);margin-top:18px}
 .prompt{text-align:center;color:var(--muted);font-weight:800;font-size:15px;margin:4px 0 12px}
 .speak{display:flex;justify-content:center;gap:10px;margin:8px 0 14px}
 .sbtn{width:76px;height:76px;border-radius:20px;border:none;background:var(--blue);color:#fff;font-size:34px;cursor:pointer;box-shadow:0 5px 0 #2a52ad}
@@ -142,6 +144,7 @@ a.link{color:var(--blue);font-weight:800;cursor:pointer;text-decoration:none}
       <div id="confirmReset" class="hidden row" style="margin-top:8px"><span class="muted">Точно сбросить?</span><button class="btn bad" id="resetYes" style="padding:8px 14px;font-size:14px">Да</button><button class="btn ghost" id="resetNo" style="padding:8px 14px;font-size:14px">Нет</button></div>
     </div>
     <p class="muted" id="voiceNote"></p>
+    <p class="credit">Картинки: пиктограммы ARASAAC (автор Sergio Palao, правообладатель — Правительство Арагона, Испания), лицензия CC BY-NC-SA. Если картинка не подходит — нажми на неё, появится другая.</p>
   </section>
 
   <!-- PLAY -->
@@ -554,7 +557,7 @@ $("start").onclick = ()=>{ if(!cfg.sets.length){ alertBox("Выбери хотя
 function alertBox(t){ const n=$("voiceNote"); n.textContent=t; n.style.color="var(--bad)"; setTimeout(()=>{n.style.color="";pickVoice();},2500); }
 function startSession(keys){
   S = {queue:[...keys].sort(()=>Math.random()-.5), total:keys.length, done:0, missed:new Set(), firstTry:0, triedOnce:new Set()};
-  show("play"); next();
+  show("play"); prefetchPics(S.queue); next();
 }
 function show(id){ ["home","play","done"].forEach(s=>$(s).classList.toggle("hidden", s!==id)); window.scrollTo(0,0); }
 $("quit").onclick = ()=>{ try{speechSynthesis.cancel()}catch(e){} save(); renderHome(); show("home"); };
@@ -575,12 +578,13 @@ function next(){
   if(!S.queue.length) return finish();
   const k = S.queue[0]; S.cur = k; S.mode = modeFor(k);
   render[S.mode](WORDS[k]);
+  showPic();
 }
 const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
 const isRight = (ans, W) => [W.w, ...W.alts].some(v => norm(v)===norm(ans));
 const ruHtml = W => cfg.ru? `<span class="ru">${W.ru}</span>` : `<a class="link" data-ru="1">показать перевод</a>`;
 document.addEventListener("click", e=>{ const a=e.target.closest("[data-ru]"); if(a) a.outerHTML = `<span class="ru">${WORDS[S.cur].ru}</span>`; });
-const pic = W => W.e? `<div class="pic">${W.e}</div>` : '';
+const pic = W => `<div class="pic" id="pic" data-k="${S.cur}">${W.e||""}</div>`;
 const speakBlock = W => `<div class="speak"><button class="sbtn" onclick="say(WORDS['${S.cur}'].w)">🔊</button><button class="sbtn slow" onclick="say(WORDS['${S.cur}'].w,0.5)">🐢</button></div>`;
 
 function grade(ok, given){
@@ -630,7 +634,7 @@ const render = {
       <div class="shown">${esc(W.w)}</div><div class="hint">${`<span class="ru">${W.ru}</span>`}</div>
       <div class="actions"><button class="btn big" id="hide">Запомнил — спрятать</button></div>`;
     say(W.w);
-    $("hide").onclick = ()=>{
+    $("hide").onclick = ()=>{ setTimeout(showPic,0);
       $("q").innerHTML = `<div class="prompt">А теперь напиши по памяти</div>${pic(W)}${speakBlock(W)}<div class="hint"><span class="ru">${W.ru}</span></div>
         <input class="ans" id="a" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
         <div class="actions"><button class="btn big" id="chk">Проверить</button></div>`;
@@ -697,6 +701,54 @@ function finish(){
   try{ $("doneCode").value = exportCode(); $("doneMsg").textContent=""; }catch(e){}
   show("done");
 }
+// ---------- КАРТИНКИ (ARASAAC) ----------
+// Слова, где эмодзи понятнее любой картинки
+const PIC_SKIP = new Set(["charlie","clare","daisy","fred","jack","jane","jim","julia","lily","mary","paul","peter","sally","vicky","zoe",
+  "monday","tuesday","wednesday","thursday","friday","saturday","sunday","matter","kind","difference","hundred","cd","dvd"]);
+// Уточнённые поисковые запросы
+const PIC_Q = {"bat":"bat animal","back":"back body","fair":"blond hair","dark":"brown hair","curly":"curly hair","straight":"straight hair",
+  "blond":"blond hair","scales":"fish scales","horn":"horn animal","wing":"wing bird","cold":"cold illness","fly":"fly insect",
+  "glass":"glass drink","goal":"goal football","top":"top","present":"gift","rock":"stone","break":"break time","text":"text message",
+  "practice":"train sport","ride":"ride bike","walk":"walk","wash":"wash hands","wave":"wave sea","net":"net","model":"model airplane",
+  "cook":"cook person","drive":"drive car","swim":"swim","skate":"skate","kick":"kick ball","laugh":"laugh","dance":"dance","work":"work"};
+let picCache = store.get("pics", {});
+const savePics = ()=> store.set("pics", picCache);
+const picUrl = id => `https://static.arasaac.org/pictograms/${id}/${id}_300.png`;
+const picOK = location.protocol==="https:" && !/claude\.ai$|claudeusercontent|anthropic/.test(location.hostname);
+const inflight = {};
+function getPicIds(k){
+  if(picCache[k]) return Promise.resolve(picCache[k]);
+  if(inflight[k]) return inflight[k];
+  const q = PIC_Q[k] || WORDS[k].w;
+  inflight[k] = fetch(`https://api.arasaac.org/v1/pictograms/en/search/${encodeURIComponent(q.toLowerCase())}`)
+    .then(r=> r.ok? r.json(): [])
+    .then(arr=>{ const ids = (Array.isArray(arr)?arr:[]).slice(0,8).map(x=>x._id).filter(Boolean);
+      if(!ids.length && PIC_Q[k]) return fetch(`https://api.arasaac.org/v1/pictograms/en/search/${encodeURIComponent(WORDS[k].w.toLowerCase())}`).then(r=>r.ok?r.json():[]).then(a=>(Array.isArray(a)?a:[]).slice(0,8).map(x=>x._id).filter(Boolean));
+      return ids; })
+    .then(ids=>{ const v={ids, i:0}; picCache[k]=v; savePics(); return v; })
+    .catch(()=> null)
+    .finally(()=>{ delete inflight[k]; });
+  return inflight[k];
+}
+function showPic(){
+  const el = $("pic"); if(!el || !picOK) return;
+  const k = el.dataset.k; if(PIC_SKIP.has(k)) return;
+  getPicIds(k).then(v=>{
+    const el2 = $("pic"); if(!el2 || el2.dataset.k!==k || !v || !v.ids.length || v.i<0) return;
+    const img = new Image(); img.alt = WORDS[k].w;
+    img.onload = ()=>{ const e3=$("pic"); if(e3 && e3.dataset.k===k){ e3.innerHTML=""; e3.appendChild(img); } };
+    img.src = picUrl(v.ids[v.i]);
+  });
+}
+document.addEventListener("click", e=>{
+  const el = e.target.closest("#pic"); if(!el || !picOK) return;
+  const k = el.dataset.k, v = picCache[k]; if(!v || !v.ids.length) return;
+  v.i = v.i+1 >= v.ids.length ? -1 : v.i+1; // после последней — снова эмодзи
+  savePics();
+  if(v.i<0){ el.textContent = WORDS[k].e || ""; } else showPic();
+});
+function prefetchPics(keys){ if(!picOK) return; (async()=>{ for(const k of keys){ if(PIC_SKIP.has(k)||picCache[k]) continue; await getPicIds(k); } })(); }
+
 // ---------- EXPORT / IMPORT ----------
 const KEYS = Object.keys(WORDS);
 function exportCode(){

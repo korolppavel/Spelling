@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spelling Bee — тренажёр для Вани</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fffaf0;--card:#fff;--ink:#2b2a33;--muted:#7a7686;--line:#ece6d8;
+  --bee:#f7b500;--bee-d:#d99a00;--ok:#2fa84f;--ok-bg:#e6f7eb;--bad:#e5484d;--bad-bg:#fdecec;--blue:#3b6fe0;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Nunito,system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-tap-highlight-color:transparent}
+.wrap{max-width:640px;margin:0 auto;padding:16px 16px 40px}
+header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+header h1{font-size:22px;margin:0;font-weight:900}
+header .sub{color:var(--muted);font-size:13px}
+.logo{font-size:34px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px}
+h2{font-size:17px;margin:0 0 10px;font-weight:800}
+.sets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.set{display:flex;align-items:center;gap:8px;border:2px solid var(--line);border-radius:14px;padding:9px 10px;cursor:pointer;user-select:none;font-weight:700;font-size:14px}
+.set.on{border-color:var(--bee);background:#fff6d9}
+.set small{display:block;color:var(--muted);font-weight:600;font-size:12px}
+.set .bar{height:5px;background:#eee;border-radius:3px;margin-top:4px;overflow:hidden}
+.set .bar i{display:block;height:100%;background:var(--ok)}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mode{border:2px solid var(--line);border-radius:14px;padding:10px;cursor:pointer;font-weight:800;font-size:14px}
+.mode span{display:block;font-weight:600;color:var(--muted);font-size:12px;margin-top:2px}
+.mode.on{border-color:var(--blue);background:#edf2ff}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{font-family:inherit}
+.btn{border:none;border-radius:14px;padding:13px 18px;font-weight:900;font-size:16px;cursor:pointer;background:var(--bee);color:#2b2a33;box-shadow:0 4px 0 var(--bee-d)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--bee-d)}
+.btn.big{width:100%;font-size:18px;padding:16px}
+.btn.ghost{background:#fff;border:2px solid var(--line);box-shadow:0 3px 0 var(--line);color:var(--ink)}
+.btn.ok{background:var(--ok);color:#fff;box-shadow:0 4px 0 #1f7a37}
+.btn.bad{background:var(--bad);color:#fff;box-shadow:0 4px 0 #b4282d}
+.btn:disabled{opacity:.45;cursor:default}
+.seg{display:flex;gap:6px}
+.seg button{border:2px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;font-weight:800;cursor:pointer}
+.seg button.on{border-color:var(--bee);background:#fff6d9}
+.progress{height:14px;background:#eee;border-radius:8px;overflow:hidden;flex:1}
+.progress i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.x{background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted)}
+.pic{font-size:64px;text-align:center;line-height:1.15;margin:2px 0 6px}
+.prompt{text-align:center;color:var(--muted);font-weight:800;font-size:15px;margin:4px 0 12px}
+.speak{display:flex;justify-content:center;gap:10px;margin:8px 0 14px}
+.sbtn{width:76px;height:76px;border-radius:20px;border:none;background:var(--blue);color:#fff;font-size:34px;cursor:pointer;box-shadow:0 5px 0 #2a52ad}
+.sbtn.slow{width:60px;height:60px;font-size:24px;background:#7d9df0;box-shadow:0 4px 0 #5070c0;align-self:flex-end}
+.hint{text-align:center;font-size:17px;font-weight:700;min-height:24px;margin-bottom:10px}
+.hint .ru{background:#f3efe4;border-radius:10px;padding:4px 10px}
+input.ans{width:100%;font-family:inherit;font-size:26px;font-weight:800;text-align:center;padding:12px;border:3px solid var(--line);border-radius:16px;outline:none;letter-spacing:1px}
+input.ans:focus{border-color:var(--blue)}
+.shown{text-align:center;font-size:40px;font-weight:900;letter-spacing:2px;margin:10px 0}
+.tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 0}
+.tile{min-width:44px;height:50px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:24px;font-weight:900;cursor:pointer;box-shadow:0 3px 0 var(--line);padding:0 8px}
+.tile.used{visibility:hidden}
+.slots{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;min-height:56px;margin:8px 0;padding:6px;border-bottom:3px solid var(--line)}
+.slot{min-width:36px;height:50px;border-radius:10px;background:#fff6d9;border:2px solid var(--bee);font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0 6px}
+.slot.sp{background:none;border:none;min-width:14px}
+.gaps{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin:14px 0}
+.gaps .l{font-size:32px;font-weight:900;width:32px;text-align:center}
+.gaps .l.sp{width:16px}
+.gaps input{width:38px;height:48px;font-size:28px;font-weight:900;text-align:center;border:3px solid var(--bee);border-radius:10px;font-family:inherit;outline:none;background:#fff6d9;padding:0}
+.gaps input:focus{border-color:var(--blue)}
+.fb{border-radius:16px;padding:14px;margin-top:14px;font-weight:800}
+.fb.ok{background:var(--ok-bg);color:#1f7a37}
+.fb.bad{background:var(--bad-bg);color:#a8262b}
+.fb .corr{font-size:28px;letter-spacing:1px;margin-top:4px;color:var(--ink)}
+.fb .corr b{color:var(--bad);text-decoration:underline}
+.fb .yours{font-size:14px;color:var(--muted);margin-top:2px}
+.actions{margin-top:14px}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat div{background:#faf6ec;border-radius:14px;padding:10px}
+.stat b{display:block;font-size:26px}
+.stat span{font-size:12px;color:var(--muted);font-weight:700}
+.hard{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.hard span{background:var(--bad-bg);color:#a8262b;border-radius:10px;padding:4px 9px;font-weight:800;font-size:14px;cursor:pointer}
+.muted{color:var(--muted);font-size:13px;font-weight:600}
+.bee-rule{background:#fff6d9;border-radius:14px;padding:10px 12px;font-size:14px;font-weight:700;margin-bottom:10px}
+.hidden{display:none}
+.list{columns:2;font-size:14px;font-weight:700;margin-top:8px}
+.list div{break-inside:avoid;padding:2px 0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#ddd}
+.d1{background:#f7c948}.d2{background:#f7b500}.d3{background:#9bd17a}.d4{background:#55b96a}.d5{background:#2fa84f}
+a.link{color:var(--blue);font-weight:800;cursor:pointer;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="logo">🐝</div><div><h1>Spelling Bee</h1><div class="sub">Тренажёр слов · Movers + Super Minds 4</div></div></header>
+
+  <!-- HOME -->
+  <section id="home">
+    <div class="card">
+      <h2>1. Какие слова учим?</h2>
+      <div class="sets" id="sets"></div>
+      <div class="row" style="margin-top:10px"><a class="link" id="allOn">выбрать все</a><span class="muted">·</span><a class="link" id="allOff">снять все</a></div>
+    </div>
+    <div class="card">
+      <h2>2. Как тренируемся?</h2>
+      <div class="modes" id="modes"></div>
+    </div>
+    <div class="card">
+      <h2>3. Сколько слов за раз?</h2>
+      <div class="seg" id="sizes"></div>
+      <div class="row" style="margin-top:12px">
+        <label class="muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ruHint" checked> показывать перевод</label>
+      </div>
+    </div>
+    <button class="btn big" id="start">Поехали! 🚀</button>
+    <div class="card" style="margin-top:14px">
+      <h2>Прогресс</h2>
+      <div class="stat" id="stat"></div>
+      <div id="lastSeen" style="margin-top:10px;font-weight:800;font-size:14px"></div>
+      <div id="hardWrap" style="margin-top:12px"></div>
+      <div style="margin-top:10px"><a class="link" id="showList">показать все слова</a></div>
+      <div id="wordList" class="list hidden"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost" id="expBtn" style="padding:9px 14px;font-size:14px">💾 Сохранить прогресс</button>
+        <button class="btn ghost" id="impBtn" style="padding:9px 14px;font-size:14px">📥 Загрузить</button>
+      </div>
+      <div id="expBox" class="hidden" style="margin-top:10px">
+        <div class="muted">Скопируй код и отправь себе (например, в «Избранное» в Telegram). Потом его можно вставить через «Загрузить».</div>
+        <textarea id="expCode" style="width:100%;height:70px;margin-top:6px;font-size:12px;border:2px solid var(--line);border-radius:10px;padding:6px"></textarea>
+        <button class="btn" id="copyCode" style="padding:9px 14px;font-size:14px">Скопировать</button> <span class="muted" id="copyMsg"></span>
+      </div>
+      <div id="impBox" class="hidden" style="margin-top:10px">
+        <div class="muted">Вставь код прогресса:</div>
+        <textarea id="impCode" style="width:100%;height:70px;margin-top:6px;font-size:12px;border:2px solid var(--line);border-radius:10px;padding:6px"></textarea>
+        <button class="btn" id="applyCode" style="padding:9px 14px;font-size:14px">Загрузить прогресс</button> <span class="muted" id="impMsg"></span>
+      </div>
+      <div style="margin-top:12px"><a class="link" id="reset" style="color:var(--bad)">сбросить прогресс</a></div>
+      <div id="confirmReset" class="hidden row" style="margin-top:8px"><span class="muted">Точно сбросить?</span><button class="btn bad" id="resetYes" style="padding:8px 14px;font-size:14px">Да</button><button class="btn ghost" id="resetNo" style="padding:8px 14px;font-size:14px">Нет</button></div>
+    </div>
+    <p class="muted" id="voiceNote"></p>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" class="hidden">
+    <div class="top"><button class="x" id="quit">✕</button><div class="progress"><i id="pbar"></i></div><b id="pcount" class="muted"></b></div>
+    <div class="card" id="q"></div>
+  </section>
+
+  <!-- DONE -->
+  <section id="done" class="hidden">
+    <div class="card" style="text-align:center">
+      <div style="font-size:64px">🏆</div>
+      <h2 style="font-size:24px">Отлично, раунд пройден!</h2>
+      <p id="doneText" style="font-weight:700"></p>
+      <div id="doneHard"></div>
+      <div class="row" style="justify-content:center;margin-top:14px">
+        <button class="btn" id="again">Ещё раунд</button>
+        <button class="btn ghost" id="home2">В меню</button>
+      </div>
+      <div style="margin-top:14px"><div class="muted" style="margin-bottom:6px">Код прогресса — скопируй и отправь себе:</div>
+      <textarea id="doneCode" style="width:100%;height:60px;font-size:12px;border:2px solid var(--line);border-radius:10px;padding:6px"></textarea>
+      <button class="btn ghost" id="doneSave" style="padding:9px 14px;font-size:14px">💾 Скопировать</button> <span class="muted" id="doneMsg"></span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ---------- DATA ----------
+// word|перевод|альтернативное написание (через запятую)
+const RAW = {
+ "sm1":["Super Minds 4 · Unit 1",`queen|королева
+knight|рыцарь
+crown|корона
+helmet|шлем
+necklace|ожерелье
+bracelet|браслет
+belt|ремень, пояс
+shield|щит
+bow and arrow|лук и стрела
+sword|меч`],
+ "sm2":["Super Minds 4 · Unit 2",`mountain|гора
+forest|лес
+village|деревня
+lake|озеро
+island|остров
+field|поле
+river|река
+path|тропинка`],
+ "sm5":["Super Minds 4 · Unit 5",`moustache|усы|mustache
+scar|шрам
+beard|борода
+dark|тёмный (о волосах)
+curly|кудрявый
+fair|светлый (о волосах)
+straight|прямой (о волосах)
+blond|светловолосый, блондин|blonde`],
+ "sm6":["Super Minds 4 · Unit 6",`wing|крыло
+horn|рог
+back|спина
+scales|чешуя
+neck|шея
+tail|хвост
+feathers|перья
+tongue|язык (во рту)`],
+ "sm7":["Super Minds 4 · Unit 7",`trombone|тромбон
+orchestra|оркестр
+keyboard|клавишные, синтезатор
+drums|барабаны
+tambourine|бубен
+saxophone|саксофон
+trumpet|труба (муз.)
+violin|скрипка
+harp|арфа`],
+ "m1":["Movers · A–D",`address|адрес
+age|возраст
+app|приложение
+aunt|тётя
+back|спина
+balcony|балкон
+band|музыкальная группа
+basement|подвал
+bat|летучая мышь; бита
+beard|борода
+blanket|одеяло, плед
+bottle|бутылка
+bottom|дно, низ
+bowl|миска
+break|перемена, перерыв
+building|здание
+bus station|автовокзал
+bus stop|автобусная остановка
+café|кафе|cafe
+cage|клетка
+car park|парковка
+CD|компакт-диск
+centre|центр|center
+cheese|сыр
+cinema|кинотеатр
+circle|круг
+circus|цирк
+city|город (большой)
+city centre|центр города|city center
+cloud|облако
+clown|клоун
+coat|пальто
+coffee|кофе
+cold|простуда; холод
+comic|комикс
+comic book|книжка комиксов
+cook|повар
+cough|кашель
+country|страна
+countryside|сельская местность
+cup|чашка
+dance|танец
+daughter|дочь
+dentist|стоматолог
+difference|разница
+doctor|врач
+dolphin|дельфин
+downstairs|внизу, на первом этаже
+dream|сон, мечта
+drive|поездка на машине
+driver|водитель
+DVD|DVD-диск`],
+ "m2":["Movers · E–H",`earache|боль в ухе
+e-book|электронная книга|ebook
+elevator|лифт (амер.)
+email|электронная почта|e-mail
+farm|ферма
+farmer|фермер
+field|поле
+film|фильм
+film star|кинозвезда
+floor|пол; этаж
+fly|муха
+forest|лес
+Friday|пятница
+funfair|парк аттракционов, ярмарка
+glass|стакан; стекло
+goal|гол; цель
+granddaughter|внучка
+grandparent|бабушка или дедушка
+grandson|внук
+grass|трава
+ground|земля
+grown-up|взрослый|grownup
+headache|головная боль
+helmet|шлем
+holiday|каникулы, отпуск
+homework|домашнее задание
+hospital|больница
+hundred|сто`],
+ "m3":["Movers · I–M",`ice|лёд
+ice skates|коньки
+ice skating|катание на коньках
+idea|идея
+inside|внутри
+internet|интернет
+island|остров
+jungle|джунгли
+kangaroo|кенгуру
+kick|удар ногой
+kind|вид, сорт
+kitten|котёнок
+lake|озеро
+laptop|ноутбук
+laugh|смех
+leaf|лист (дерева)
+leaves|листья
+library|библиотека
+lift|лифт (брит.)
+lion|лев
+machine|машина, механизм
+map|карта
+market|рынок
+matter|дело ("What's the matter?")
+message|сообщение
+milkshake|молочный коктейль
+mistake|ошибка
+model|модель
+Monday|понедельник
+moon|луна
+mountain|гора
+moustache|усы|mustache
+movie|фильм (амер.)`],
+ "m4":["Movers · N–R",`neck|шея
+net|сетка
+noise|шум
+noodles|лапша
+nurse|медсестра
+outside|снаружи
+pair|пара
+pancake|блин
+panda|панда
+parent|родитель
+parrot|попугай
+party|вечеринка, праздник
+pasta|паста, макароны
+penguin|пингвин
+picnic|пикник
+pirate|пират
+place|место
+plant|растение
+plate|тарелка
+player|игрок
+pool|бассейн
+pop star|поп-звезда
+practice|тренировка, практика
+present|подарок
+puppy|щенок
+rabbit|кролик
+rain|дождь
+rainbow|радуга
+ride|поездка, катание
+river|река
+road|дорога
+rock|камень, скала
+roller skates|роликовые коньки
+roller skating|катание на роликах
+roof|крыша`],
+ "m5":["Movers · S",`sail|парус
+salad|салат
+sandwich|бутерброд, сэндвич
+Saturday|суббота
+sauce|соус
+scarf|шарф
+seat|сиденье
+shape|форма, фигура
+shark|акула
+shopping|покупки
+shopping centre|торговый центр|shopping center
+shoulder|плечо
+shower|душ
+skate|конёк
+sky|небо
+snail|улитка
+snow|снег
+son|сын
+soup|суп
+sports centre|спортивный центр|sports center
+square|площадь; квадрат
+stairs|лестница
+star|звезда
+station|станция, вокзал
+stomach|живот
+stomach-ache|боль в животе|stomachache
+Sunday|воскресенье
+supermarket|супермаркет
+sweater|свитер
+swim|заплыв, плавание
+swimming pool|плавательный бассейн
+swimsuit|купальник`],
+ "m6":["Movers · T–Z",`tea|чай
+temperature|температура
+text|SMS-сообщение
+think|думать
+Thursday|четверг
+ticket|билет
+tooth|зуб
+teeth|зубы
+toothache|зубная боль
+toothbrush|зубная щётка
+toothpaste|зубная паста
+top|верх, вершина
+towel|полотенце
+town|город (небольшой)
+town centre|центр города|town center
+tractor|трактор
+treasure|сокровище
+trip|поездка
+Tuesday|вторник
+uncle|дядя
+upstairs|наверху, на верхнем этаже
+vegetable|овощ
+video|видео
+village|деревня
+walk|прогулка
+wash|мытьё
+waterfall|водопад
+wave|волна
+weather|погода
+website|сайт
+Wednesday|среда
+week|неделя
+weekend|выходные
+whale|кит
+wind|ветер
+work|работа
+world|мир
+yesterday|вчера`],
+ "names":["Movers · Имена",`Charlie|имя (с заглавной)
+Clare|имя (с заглавной)
+Daisy|имя (с заглавной)
+Fred|имя (с заглавной)
+Jack|имя (с заглавной)
+Jane|имя (с заглавной)
+Jim|имя (с заглавной)
+Julia|имя (с заглавной)
+Lily|имя (с заглавной)
+Mary|имя (с заглавной)
+Paul|имя (с заглавной)
+Peter|имя (с заглавной)
+Sally|имя (с заглавной)
+Vicky|имя (с заглавной)
+Zoe|имя (с заглавной)`]
+};
+const SETS = {}; const WORDS = {};
+for (const [id,[title,txt]] of Object.entries(RAW)){
+  SETS[id] = {title, words:[]};
+  txt.split("\n").forEach(line=>{
+    const [w,ru,alt] = line.split("|");
+    const key = w.toLowerCase();
+    if(!WORDS[key]) WORDS[key] = {w, ru, alts: alt? alt.split(","):[]};
+    SETS[id].words.push(key);
+  });
+}
+
+const EMO = {"queen": "👸", "knight": "🤺", "crown": "👑", "helmet": "⛑️", "necklace": "📿", "bracelet": "🤚📿", "belt": "👖", "shield": "🛡️", "bow and arrow": "🏹", "sword": "🗡️", "mountain": "⛰️", "forest": "🌲🌳🌲", "village": "🏘️", "lake": "🏞️", "island": "🏝️", "field": "🌾", "river": "🛶", "path": "🚶🌳", "moustache": "🥸", "scar": "🩹", "beard": "🧔", "dark": "🖤💇", "curly": "👨‍🦱", "fair": "👱", "straight": "💇‍♀️", "blond": "👱‍♀️", "wing": "🕊️", "horn": "🦏", "back": "🎒", "scales": "🐟", "neck": "🦒", "tail": "🦊", "feathers": "🪶", "tongue": "👅", "trombone": "🎺", "orchestra": "🎻🎺🥁", "keyboard": "🎹", "drums": "🥁", "tambourine": "🥁✨", "saxophone": "🎷", "trumpet": "🎺", "violin": "🎻", "harp": "🎶👼", "address": "🏠📮", "age": "🎂", "app": "📱", "aunt": "👩‍🦰", "balcony": "🏢", "band": "🎸🎤", "basement": "⬇️🏠", "bat": "🦇", "blanket": "🛏️", "bottle": "🍾", "bottom": "⬇️", "bowl": "🥣", "break": "☕", "building": "🏢", "bus station": "🚌🏢", "bus stop": "🚏", "café": "☕🥐", "cage": "🔒🐦", "car park": "🅿️", "cd": "💿", "centre": "🎯", "cheese": "🧀", "cinema": "🎦", "circle": "⭕", "circus": "🎪", "city": "🏙️", "city centre": "🏙️🎯", "cloud": "☁️", "clown": "🤡", "coat": "🧥", "coffee": "☕", "cold": "🤧", "comic": "💥", "comic book": "📕💥", "cook": "🧑‍🍳", "cough": "😷", "country": "🗺️", "countryside": "🏡🌾", "cup": "🍵", "dance": "💃", "daughter": "👧", "dentist": "🦷🧑‍⚕️", "difference": "🍎≠🍐", "doctor": "🧑‍⚕️", "dolphin": "🐬", "downstairs": "⬇️🪜", "dream": "💭", "drive": "🚗", "driver": "🚕🧑", "dvd": "📀", "earache": "👂😣", "e-book": "📲📖", "elevator": "🛗", "email": "📧", "farm": "🏡🐄", "farmer": "🧑‍🌾", "film": "🎬", "film star": "🌟🎬", "floor": "🏢1️⃣", "fly": "🪰", "friday": "5️⃣📅", "funfair": "🎡", "glass": "🥛", "goal": "⚽🥅", "granddaughter": "👵👧", "grandparent": "👴👵", "grandson": "👴👦", "grass": "🌱", "ground": "🌍", "grown-up": "🧑", "headache": "🤕", "holiday": "🏖️", "homework": "📝", "hospital": "🏥", "hundred": "💯", "ice": "🧊", "ice skates": "⛸️", "ice skating": "⛸️❄️", "idea": "💡", "inside": "📥", "internet": "🌐", "jungle": "🌴🐒", "kangaroo": "🦘", "kick": "🦵⚽", "kind": "🍎🍌🍇", "kitten": "🐱", "laptop": "💻", "laugh": "😂", "leaf": "🍃", "leaves": "🍂", "library": "📚", "lift": "🛗", "lion": "🦁", "machine": "⚙️", "map": "🗺️", "market": "🧺🥕", "matter": "❓", "message": "💬", "milkshake": "🥤", "mistake": "❌", "model": "🛩️", "monday": "1️⃣📅", "moon": "🌙", "movie": "🎥", "net": "🥅", "noise": "🔊", "noodles": "🍜", "nurse": "👩‍⚕️", "outside": "🌳🚪", "pair": "🧦", "pancake": "🥞", "panda": "🐼", "parent": "👨‍👩‍👦", "parrot": "🦜", "party": "🎉", "pasta": "🍝", "penguin": "🐧", "picnic": "🧺", "pirate": "🏴‍☠️", "place": "📍", "plant": "🪴", "plate": "🍽️", "player": "⛹️", "pool": "💦🏊", "pop star": "🎤🌟", "practice": "🏋️", "present": "🎁", "puppy": "🐶", "rabbit": "🐰", "rain": "🌧️", "rainbow": "🌈", "ride": "🎢", "road": "🛣️", "rock": "🪨", "roller skates": "🛼", "roller skating": "🛼💨", "roof": "🏠⬆️", "sail": "⛵", "salad": "🥗", "sandwich": "🥪", "saturday": "6️⃣📅", "sauce": "🥫", "scarf": "🧣", "seat": "💺", "shape": "🔷🔺", "shark": "🦈", "shopping": "🛍️", "shopping centre": "🏬", "shoulder": "🤷", "shower": "🚿", "skate": "⛸️", "sky": "🌤️", "snail": "🐌", "snow": "❄️", "son": "👦", "soup": "🍲", "sports centre": "🏟️", "square": "⬛", "stairs": "🪜", "star": "⭐", "station": "🚉", "stomach": "🍔😋", "stomach-ache": "🤢", "sunday": "7️⃣📅", "supermarket": "🛒", "sweater": "🧶", "swim": "🏊‍♂️", "swimming pool": "🏊‍♀️🌊", "swimsuit": "🩱", "tea": "🫖", "temperature": "🌡️", "text": "📱💬", "think": "🤔", "thursday": "4️⃣📅", "ticket": "🎟️", "tooth": "🦷", "teeth": "😁", "toothache": "🦷😖", "toothbrush": "🪥", "toothpaste": "🪥🧴", "top": "🔝", "towel": "🚿🧻", "town": "🏪🏘️", "town centre": "🏘️🎯", "tractor": "🚜", "treasure": "🪙💰", "trip": "🧳", "tuesday": "2️⃣📅", "uncle": "👨", "upstairs": "⬆️🪜", "vegetable": "🥕", "video": "📹", "walk": "🚶", "wash": "🧼", "waterfall": "💧⛰️", "wave": "🌊", "weather": "⛅", "website": "🌐🖥️", "wednesday": "3️⃣📅", "week": "📅", "weekend": "😎📅", "whale": "🐋", "wind": "💨", "work": "💼", "world": "🌍", "yesterday": "⏪📅", "charlie": "🧒", "clare": "👩", "daisy": "🌼👧", "fred": "👨", "jack": "👦", "jane": "👩", "jim": "👨", "julia": "👧", "lily": "🌸👧", "mary": "👩", "paul": "👨", "peter": "👦", "sally": "👧", "vicky": "👧", "zoe": "👧"};
+for(const k in WORDS) WORDS[k].e = EMO[k]||'';
+
+// ---------- STORAGE ----------
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem("sb_"+k); return v? JSON.parse(v): d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem("sb_"+k, JSON.stringify(v)); }catch(e){} }
+};
+let prog = store.get("prog", {}); // key -> {box, seen, wrong, due}
+let cfg = store.get("cfg", {sets:["sm1","sm2","sm5","sm6","sm7"], mode:"mix", size:15, ru:true});
+const save = ()=>{ store.set("prog",prog); store.set("cfg",cfg); };
+const stamp = ()=> store.set("last", Date.now());
+const P = k => prog[k] || (prog[k] = {box:0, seen:0, wrong:0, due:0});
+
+// ---------- SPEECH ----------
+let voice = null;
+function pickVoice(){
+  try{
+    const vs = speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
+    voice = vs.find(v=>/en[-_]GB/i.test(v.lang) && /Google|Daniel|Serena|Kate|Arthur|Martha|Natural/i.test(v.name))
+         || vs.find(v=>/en[-_]GB/i.test(v.lang)) || vs.find(v=>/en[-_]US/i.test(v.lang)) || vs[0] || null;
+    document.getElementById("voiceNote").textContent = voice
+      ? "Голос: "+voice.name+" ("+voice.lang+"). Если звука нет — проверь, что телефон не на беззвучном."
+      : "Голос для английского не найден в этом браузере — попробуй Chrome или Safari.";
+  }catch(e){}
+}
+try{ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }catch(e){}
+function say(text, rate=0.85){
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if(voice){ u.voice = voice; u.lang = voice.lang; } else u.lang = "en-GB";
+    u.rate = rate; speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+// ---------- HOME UI ----------
+const $ = id => document.getElementById(id);
+const MODES = [
+  ["mix","🎯 Микс","как в Duolingo: задания усложняются"],
+  ["dict","🎧 Диктант","слушаешь — пишешь"],
+  ["tiles","🧩 Собери слово","из перемешанных букв"],
+  ["gaps","✏️ Вставь буквы","часть букв спрятана"],
+  ["cards","👀 Посмотри и запомни","увидел → спрятали → написал"],
+  ["bee","🐝 Как на конкурсе","говоришь по буквам вслух"]
+];
+function renderHome(){
+  $("sets").innerHTML = Object.entries(SETS).map(([id,s])=>{
+    const n = s.words.length, m = s.words.filter(k=>(prog[k]||{}).box>=3).length;
+    return `<div class="set ${cfg.sets.includes(id)?"on":""}" data-id="${id}"><div style="flex:1">${s.title}<small>${n} слов · выучено ${m}</small><div class="bar"><i style="width:${Math.round(m/n*100)}%"></i></div></div></div>`;
+  }).join("");
+  $("modes").innerHTML = MODES.map(([id,t,d])=>`<div class="mode ${cfg.mode===id?"on":""}" data-id="${id}">${t}<span>${d}</span></div>`).join("");
+  $("sizes").innerHTML = [10,15,20,30].map(n=>`<button class="${cfg.size===n?"on":""}" data-n="${n}">${n}</button>`).join("");
+  $("ruHint").checked = cfg.ru;
+  const all = Object.keys(WORDS);
+  const learned = all.filter(k=>(prog[k]||{}).box>=3).length;
+  const started = all.filter(k=>(prog[k]||{}).seen>0).length;
+  const last = store.get("last", 0);
+  $("lastSeen").innerHTML = last ? `✅ Прогресс сохранён · последнее занятие: ${new Date(last).toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}` : `<span class="muted">Занятий на этом устройстве пока не было</span>`;
+  $("stat").innerHTML = `<div><b>${all.length}</b><span>всего слов</span></div><div><b>${started}</b><span>начали</span></div><div><b>${learned}</b><span>выучено</span></div>`;
+  const hard = all.filter(k=>(prog[k]||{}).wrong>0).sort((a,b)=>(prog[b].wrong-prog[b].box)-(prog[a].wrong-prog[a].box)).slice(0,24);
+  $("hardWrap").innerHTML = hard.length? `<div class="muted">Трудные слова (нажми, чтобы послушать):</div><div class="hard">${hard.map(k=>`<span data-k="${k}">${WORDS[k].w}</span>`).join("")}</div>
+    <button class="btn ghost" id="trainHard" style="margin-top:10px;padding:9px 14px;font-size:14px">Потренировать трудные</button>`:"";
+  if(hard.length) $("trainHard").onclick = ()=> startSession(hard);
+  $("hardWrap").querySelectorAll(".hard span").forEach(s=>s.onclick=()=>say(WORDS[s.dataset.k].w));
+  $("wordList").innerHTML = all.map(k=>{const b=(prog[k]||{}).box||0;return `<div><span class="dot d${b}"></span>${WORDS[k].e} ${WORDS[k].w} <span class="muted">— ${WORDS[k].ru}</span></div>`}).join("");
+}
+$("sets").onclick = e=>{ const el=e.target.closest(".set"); if(!el) return; const id=el.dataset.id;
+  cfg.sets = cfg.sets.includes(id)? cfg.sets.filter(x=>x!==id): [...cfg.sets,id]; save(); renderHome(); };
+$("modes").onclick = e=>{ const el=e.target.closest(".mode"); if(!el) return; cfg.mode=el.dataset.id; save(); renderHome(); };
+$("sizes").onclick = e=>{ const b=e.target.closest("button"); if(!b) return; cfg.size=+b.dataset.n; save(); renderHome(); };
+$("ruHint").onchange = e=>{ cfg.ru=e.target.checked; save(); };
+$("allOn").onclick = ()=>{ cfg.sets=Object.keys(SETS); save(); renderHome(); };
+$("allOff").onclick = ()=>{ cfg.sets=[]; save(); renderHome(); };
+$("showList").onclick = ()=> $("wordList").classList.toggle("hidden");
+$("reset").onclick = ()=> $("confirmReset").classList.remove("hidden");
+$("resetNo").onclick = ()=> $("confirmReset").classList.add("hidden");
+$("resetYes").onclick = ()=>{ prog={}; save(); $("confirmReset").classList.add("hidden"); renderHome(); };
+
+// ---------- SESSION ----------
+let S = null;
+function pickWords(){
+  const pool = [...new Set(cfg.sets.flatMap(id=>SETS[id].words))];
+  const now = Date.now();
+  // priority: due & weak first, then new, then the rest
+  const score = k => { const p = prog[k]; if(!p || !p.seen) return 2 + Math.random();
+    return (p.due<=now? 0:3) + p.box*0.7 - p.wrong*0.2 + Math.random(); };
+  return pool.sort((a,b)=>score(a)-score(b)).slice(0, cfg.size);
+}
+$("start").onclick = ()=>{ if(!cfg.sets.length){ alertBox("Выбери хотя бы один набор слов"); return; } startSession(pickWords()); };
+function alertBox(t){ const n=$("voiceNote"); n.textContent=t; n.style.color="var(--bad)"; setTimeout(()=>{n.style.color="";pickVoice();},2500); }
+function startSession(keys){
+  S = {queue:[...keys].sort(()=>Math.random()-.5), total:keys.length, done:0, missed:new Set(), firstTry:0, triedOnce:new Set()};
+  show("play"); next();
+}
+function show(id){ ["home","play","done"].forEach(s=>$(s).classList.toggle("hidden", s!==id)); window.scrollTo(0,0); }
+$("quit").onclick = ()=>{ try{speechSynthesis.cancel()}catch(e){} save(); renderHome(); show("home"); };
+$("again").onclick = ()=> startSession(pickWords());
+$("home2").onclick = ()=>{ renderHome(); show("home"); };
+
+function modeFor(k){
+  if(cfg.mode!=="mix") return cfg.mode;
+  const b = P(k).box;
+  if(b===0) return Math.random()<.5? "cards":"tiles";
+  if(b===1) return Math.random()<.5? "tiles":"gaps";
+  if(b===2) return Math.random()<.4? "gaps":"dict";
+  return "dict";
+}
+function next(){
+  $("pbar").style.width = (S.done/S.total*100)+"%";
+  $("pcount").textContent = S.done+"/"+S.total;
+  if(!S.queue.length) return finish();
+  const k = S.queue[0]; S.cur = k; S.mode = modeFor(k);
+  render[S.mode](WORDS[k]);
+}
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+const isRight = (ans, W) => [W.w, ...W.alts].some(v => norm(v)===norm(ans));
+const ruHtml = W => cfg.ru? `<span class="ru">${W.ru}</span>` : `<a class="link" data-ru="1">показать перевод</a>`;
+document.addEventListener("click", e=>{ const a=e.target.closest("[data-ru]"); if(a) a.outerHTML = `<span class="ru">${WORDS[S.cur].ru}</span>`; });
+const pic = W => W.e? `<div class="pic">${W.e}</div>` : '';
+const speakBlock = W => `<div class="speak"><button class="sbtn" onclick="say(WORDS['${S.cur}'].w)">🔊</button><button class="sbtn slow" onclick="say(WORDS['${S.cur}'].w,0.5)">🐢</button></div>`;
+
+function grade(ok, given){
+  const k = S.cur, p = P(k), W = WORDS[k];
+  p.seen++;
+  const first = !S.triedOnce.has(k); S.triedOnce.add(k);
+  if(ok){
+    stamp(); if(first){ p.box = Math.min(5, p.box+1); S.firstTry++; }
+    p.due = Date.now() + [0, 1, 2, 4, 7, 14][p.box]*864e5/ (p.box<2?24:1);
+    S.queue.shift(); S.done++;
+  }else{
+    p.wrong++; stamp(); p.box = Math.max(0, p.box-1); p.due = 0; S.missed.add(k);
+    S.queue.shift(); S.queue.splice(Math.min(3, S.queue.length), 0, k); // вернётся через пару слов
+  }
+  save();
+  const fb = document.createElement("div");
+  if(ok){
+    fb.className="fb ok"; fb.innerHTML = `${["Отлично!","Супер!","Точно!","Молодец!","Yes! 🐝"][Math.floor(Math.random()*5)]}<div class="corr">${W.w}</div>`;
+  }else{
+    fb.className="fb bad"; fb.innerHTML = `Почти! Правильно так:<div class="corr">${diff(W.w, given||"")}</div>${given?`<div class="yours">у тебя: ${esc(given)}</div>`:""}<div class="yours">Слово вернётся чуть позже 😉</div>`;
+  }
+  const q = $("q"); q.querySelectorAll("button:not(.sbtn), input").forEach(b=>b.disabled=true);
+  q.appendChild(fb);
+  const act = document.createElement("div"); act.className="actions";
+  act.innerHTML = `<button class="btn big ${ok?"ok":""}" id="go">Дальше →</button>`;
+  q.appendChild(act); $("go").onclick = next; $("go").focus();
+  say(W.w);
+}
+const esc = s => s.replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function diff(correct, given){
+  if(!given) return esc(correct);
+  const g = norm(given);
+  return [...correct].map((ch,i)=> (g[i]||"")===ch.toLowerCase() || ch===" " ? esc(ch) : `<b>${esc(ch)}</b>`).join("");
+}
+function onEnter(input, fn){ input.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); fn(); } }); }
+
+const render = {
+  dict(W){
+    $("q").innerHTML = `<div class="prompt">Послушай и напиши слово</div>${pic(W)}${speakBlock(W)}<div class="hint">${ruHtml(W)}</div>
+      <input class="ans" id="a" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="пиши здесь">
+      <div class="actions"><button class="btn big" id="chk">Проверить</button></div>`;
+    const a=$("a"); const go=()=>{ if(!a.value.trim()) return; grade(isRight(a.value,W), a.value); };
+    $("chk").onclick=go; onEnter(a,go); say(W.w); setTimeout(()=>a.focus(),50);
+  },
+  cards(W){
+    $("q").innerHTML = `<div class="prompt">Посмотри, прочитай вслух по буквам и запомни</div>${pic(W)}${speakBlock(W)}
+      <div class="shown">${esc(W.w)}</div><div class="hint">${`<span class="ru">${W.ru}</span>`}</div>
+      <div class="actions"><button class="btn big" id="hide">Запомнил — спрятать</button></div>`;
+    say(W.w);
+    $("hide").onclick = ()=>{
+      $("q").innerHTML = `<div class="prompt">А теперь напиши по памяти</div>${pic(W)}${speakBlock(W)}<div class="hint"><span class="ru">${W.ru}</span></div>
+        <input class="ans" id="a" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <div class="actions"><button class="btn big" id="chk">Проверить</button></div>`;
+      const a=$("a"); const go=()=>{ if(!a.value.trim()) return; grade(isRight(a.value,W), a.value); };
+      $("chk").onclick=go; onEnter(a,go); setTimeout(()=>a.focus(),50);
+    };
+  },
+  tiles(W){
+    const letters = [...W.w].map((c,i)=>({c,i})).filter(o=>o.c!==" ");
+    let shuffled; do { shuffled = [...letters].sort(()=>Math.random()-.5); } while(letters.length>2 && shuffled.map(o=>o.c).join("")===letters.map(o=>o.c).join(""));
+    const picked = [];
+    $("q").innerHTML = `<div class="prompt">Собери слово из букв</div>${pic(W)}${speakBlock(W)}<div class="hint">${ruHtml(W)}</div>
+      <div class="slots" id="slots"></div><div class="tiles" id="tiles">${shuffled.map((o,j)=>`<button class="tile" data-j="${j}">${esc(o.c)}</button>`).join("")}</div>
+      <div class="actions row"><button class="btn ghost" id="undo">⌫</button><button class="btn" id="chk" style="flex:1" disabled>Проверить</button></div>`;
+    const draw = ()=>{
+      // вставляем пробелы на их места
+      const out=[]; let p=0;
+      for(const ch of W.w){ if(ch===" "){ out.push(`<div class="slot sp"></div>`); continue; }
+        if(p<picked.length){ const j=picked[p]; out.push(`<div class="slot" data-p="${p}">${esc(shuffled[j].c)}</div>`); p++; } }
+      $("slots").innerHTML = out.join("");
+      $("tiles").querySelectorAll(".tile").forEach(t=>t.classList.toggle("used", picked.includes(+t.dataset.j)));
+      $("chk").disabled = picked.length!==letters.length;
+    };
+    $("tiles").onclick = e=>{ const t=e.target.closest(".tile"); if(!t||t.disabled) return; picked.push(+t.dataset.j); draw(); };
+    $("slots").onclick = e=>{ const s=e.target.closest(".slot[data-p]"); if(!s) return; picked.splice(+s.dataset.p); draw(); };
+    $("undo").onclick = ()=>{ picked.pop(); draw(); };
+    const answer = ()=>{ let p=0; return [...W.w].map(ch=> ch===" "?" ": shuffled[picked[p++]].c).join(""); };
+    $("chk").onclick = ()=> grade(isRight(answer(),W), answer());
+    draw(); say(W.w);
+  },
+  gaps(W){
+    const chars=[...W.w]; const idx = chars.map((c,i)=>/[a-zé]/i.test(c)?i:-1).filter(i=>i>=0);
+    const nHide = Math.max(1, Math.round(idx.length*0.45));
+    // прячем в первую очередь "коварные" буквы: гласные и удвоенные
+    const weight = i => (/[aeiouy]/i.test(chars[i])?2:0) + (chars[i]===chars[i-1]||chars[i]===chars[i+1]?2:0) + Math.random()*1.5;
+    const hide = new Set([...idx].sort((a,b)=>weight(b)-weight(a)).slice(0,nHide));
+    $("q").innerHTML = `<div class="prompt">Вставь пропущенные буквы</div>${pic(W)}${speakBlock(W)}<div class="hint">${ruHtml(W)}</div>
+      <div class="gaps" id="g">${chars.map((c,i)=> hide.has(i)? `<input maxlength="1" data-i="${i}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">` : `<div class="l ${c===" "?"sp":""}">${esc(c)}</div>`).join("")}</div>
+      <div class="actions"><button class="btn big" id="chk">Проверить</button></div>`;
+    const ins = [...$("g").querySelectorAll("input")];
+    ins.forEach((inp,n)=>{ inp.addEventListener("input",()=>{ if(inp.value && ins[n+1]) ins[n+1].focus(); });
+      inp.addEventListener("keydown",e=>{ if(e.key==="Backspace" && !inp.value && ins[n-1]) ins[n-1].focus(); if(e.key==="Enter") go(); }); });
+    const go = ()=>{ const ans = chars.map((c,i)=> hide.has(i)? (ins.find(x=>+x.dataset.i===i).value||"_") : c).join(""); grade(isRight(ans,W), ans); };
+    $("chk").onclick = go; say(W.w); setTimeout(()=>ins[0]&&ins[0].focus(),50);
+  },
+  bee(W){
+    $("q").innerHTML = `<div class="bee-rule">Как на конкурсе: <b>произнеси слово → назови буквы вслух → снова произнеси слово</b>. Родитель проверяет.</div>
+      ${pic(W)}${speakBlock(W)}<div class="hint">${ruHtml(W)}</div>
+      <div class="actions"><button class="btn big ghost" id="rev">Показать правильный ответ</button></div>`;
+    say(W.w);
+    $("rev").onclick = ()=>{
+      $("rev").parentElement.innerHTML = `<div class="shown">${esc(W.w)}</div><div class="prompt">${[...W.w].filter(c=>c!==" ").map(c=>c.toUpperCase()).join(" – ")}</div>
+        <div class="row"><button class="btn bad" id="no" style="flex:1">✗ Ошибся</button><button class="btn ok" id="yes" style="flex:1">✓ Верно</button></div>`;
+      $("yes").onclick = ()=>{ $("q").querySelector(".shown").remove(); grade(true); };
+      $("no").onclick = ()=>{ $("q").querySelector(".shown").remove(); grade(false); };
+    };
+  }
+};
+function finish(){
+  $("pbar").style.width="100%";
+  const missed=[...S.missed];
+  $("doneText").textContent = `С первой попытки: ${S.firstTry} из ${S.total}.`;
+  $("doneHard").innerHTML = missed.length? `<div class="muted">Над этими словами ещё поработаем:</div><div class="hard" style="justify-content:center">${missed.map(k=>`<span>${WORDS[k].w}</span>`).join("")}</div>`:"<div class='muted'>Ни одной ошибки — так держать! 🎉</div>";
+  try{ $("doneCode").value = exportCode(); $("doneMsg").textContent=""; }catch(e){}
+  show("done");
+}
+// ---------- EXPORT / IMPORT ----------
+const KEYS = Object.keys(WORDS);
+function exportCode(){
+  return "SB1:" + KEYS.map(k=>{ const p=prog[k]; return p&&p.seen? String(p.box)+Math.min(9,p.wrong): "x"; }).join("").replace(/(x+)/g, m=>"x"+m.length+".");
+}
+function importCode(code){
+  code = (code||"").trim();
+  if(!code.startsWith("SB1:")) throw 0;
+  const body = code.slice(4).replace(/x(\d+)\./g, (_,n)=>"x".repeat(+n));
+  const np = {}; let i=0;
+  for(const k of KEYS){
+    if(i>=body.length) throw 0;
+    if(body[i]==="x"){ i++; continue; }
+    const box=+body[i], wrong=+body[i+1]; if(isNaN(box)||isNaN(wrong)) throw 0;
+    np[k]={box, wrong, seen:1, due:0}; i+=2;
+  }
+  prog = np; save();
+}
+function copyFrom(ta, msgEl){
+  let ok=false;
+  try{ ta.focus(); ta.setSelectionRange(0, ta.value.length); ok = document.execCommand("copy"); }catch(e){}
+  if(ok){ msgEl.textContent="Скопировано ✓"; return; }
+  try{ navigator.clipboard.writeText(ta.value).then(()=>msgEl.textContent="Скопировано ✓", ()=>msgEl.textContent="Код выделен — нажми «Скопировать» в меню"); }
+  catch(e){ msgEl.textContent="Код выделен — нажми «Скопировать» в меню"; }
+}
+$("expBtn").onclick = ()=>{ $("impBox").classList.add("hidden"); $("expBox").classList.toggle("hidden"); $("expCode").value = exportCode(); $("copyMsg").textContent=""; };
+$("impBtn").onclick = ()=>{ $("expBox").classList.add("hidden"); $("impBox").classList.toggle("hidden"); $("impMsg").textContent=""; };
+$("copyCode").onclick = ()=> copyFrom($("expCode"), $("copyMsg"));
+$("applyCode").onclick = ()=>{ try{ importCode($("impCode").value); $("impMsg").textContent="Готово ✓"; renderHome(); }catch(e){ $("impMsg").textContent="Код не подошёл — проверь, что скопирован целиком"; } };
+$("doneSave").onclick = ()=> copyFrom($("doneCode"), $("doneMsg"));
+renderHome();
+</script>
+</body>
+</html>

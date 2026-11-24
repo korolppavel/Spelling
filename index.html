@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Spelling Bee">
+<meta name="theme-color" content="#fffaf0">
 <title>Spelling Bee — тренажёр для Вани</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -724,6 +728,10 @@ $("copyCode").onclick = ()=> copyFrom($("expCode"), $("copyMsg"));
 $("applyCode").onclick = ()=>{ try{ importCode($("impCode").value); $("impMsg").textContent="Готово ✓"; renderHome(); }catch(e){ $("impMsg").textContent="Код не подошёл — проверь, что скопирован целиком"; } };
 $("doneSave").onclick = ()=> copyFrom($("doneCode"), $("doneMsg"));
 renderHome();
+// офлайн-режим: только на собственном сайте (GitHub Pages)
+if ("serviceWorker" in navigator && /github\.io$/.test(location.hostname)) {
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
 </script>
 </body>
 </html>
